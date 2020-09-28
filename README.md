@@ -26,7 +26,7 @@ cd build
 ninja
 ```
 
-Note that the generated DLL name is `hook.dll` using MSVC or `winmm.dll` using MinGW. Do not use `libhook.dll`, since it does not contain a correct exports table.
+The generated DLL name is `hook.dll` using MSVC, or `libhook.dll` using MinGW.
 
 The project contains a sample code that enables HiDPI support for all applications loading the spoofing DLL. This achieves the same effect as by .exe File Properties → Compatibility → Change high DPI settings → Override high DPI scaling behavior, without writing to the registry.
 

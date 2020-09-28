@@ -29,12 +29,12 @@ gen_files = custom_target('gen_files',
     command : generate_command,
     output : ['func_defs.inc', 'exports.def'])
 
-### MSVC part
+### compiler part
 
 if compiler_id == 'msvc'
-    link_args = ['shcore.lib', '/def:exports.def']
+    link_args = ['shcore.lib', '/def:exports.def']      # shcore.dll is only needed by hidpi_hook
 else
-    link_args = [system32 + '\\shcore.dll']     # shcore.dll is only needed by hidpi_hook
+    link_args = [system32 + '\\shcore.dll', 'exports.def']
 endif
 
 libhook = shared_library('hook',
@@ -42,16 +42,3 @@ libhook = shared_library('hook',
     'hidpi_hook.cc',
     gen_files,
     link_args : link_args)
-
-### MinGW part
-
-if compiler_id == 'gcc'
-    custom_target('wrap_dll',
-        input : [gen_files, libhook],
-        command : ['dllwrap', '--def=exports.def', '-o', dllname + '.dll',
-            #libhook.extract_all_objects(),
-            'hook@sha\*.obj',
-            '-Wl,' + system32 + '\\shcore.dll'],
-        output : dllname + '.dll',
-        build_by_default : true)
-endif
