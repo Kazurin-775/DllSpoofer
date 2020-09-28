@@ -1,0 +1,57 @@
+project('high_dpi_hook', 'cpp',
+    version : '0.1',
+    default_options : ['warning_level=3', 'cpp_std=c++14'])
+
+### configuration part
+
+dllname = 'winmm'
+system32 = 'C:\\Windows\\System32'
+
+conf_data = configuration_data()
+conf_data.set('dllname', dllname)
+configure_file(input : 'dllname.h.in',
+               output : 'dllname.h',
+               configuration : conf_data)
+
+dllpath = system32 + '\\' + dllname + '.dll'
+
+compiler_id = meson.get_compiler('cpp').get_id()
+
+### export table generation part
+
+generate_command = ['python', files('extract_exports.py'), dllpath]
+if compiler_id == 'msvc'
+    generate_command += '--use-noname'
+endif
+
+gen_files = custom_target('gen_files',
+    input : ['extract_exports.py', dllpath],
+    command : generate_command,
+    output : ['func_defs.inc', 'exports.def'])
+
+### MSVC part
+
+if compiler_id == 'msvc'
+    link_args = ['shcore.lib', '/def:exports.def']
+else
+    link_args = [system32 + '\\shcore.dll']     # shcore.dll is only needed by hidpi_hook
+endif
+
+libhook = shared_library('hook',
+    'dll_hook.cc',
+    'hidpi_hook.cc',
+    gen_files,
+    link_args : link_args)
+
+### MinGW part
+
+if compiler_id == 'gcc'
+    custom_target('wrap_dll',
+        input : [gen_files, libhook],
+        command : ['dllwrap', '--def=exports.def', '-o', dllname + '.dll',
+            #libhook.extract_all_objects(),
+            'hook@sha\*.obj',
+            '-Wl,' + system32 + '\\shcore.dll'],
+        output : dllname + '.dll',
+        build_by_default : true)
+endif
